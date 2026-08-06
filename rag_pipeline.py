@@ -59,6 +59,28 @@ def chunk_document(text: str, source_url: str, chunk_size: int = 150, overlap: i
 
     return chunks
 
+def build_corpus():
+    print("Fetching and processing corpus documents...")
+    all_chunks = []
+    chunk_counter = 0
+
+    for url in QLIB_DOCUMENT_URLS:
+        try:
+            res = requests.get(url, timeout=10)
+            if res.status_code == 200:
+                cleaned = clean_text(res.text)
+                doc_chunks = chunk_document(cleaned, source_url=url)
+                for c in doc_chunks:
+                    c["doc_id"] = f"doc_{chunk_counter}"
+                    all_chunks.append(c)
+                    chunk_counter += 1
+        except Exception as e:
+            print(f"Warning: Failed to fetch {url}: {e}")
+
+    print(f"Total Chunks Processed: {len(all_chunks)}")
+
+    return all_chunks
+
 
 
 
