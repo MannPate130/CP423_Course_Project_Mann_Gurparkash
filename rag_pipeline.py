@@ -82,5 +82,39 @@ def build_corpus():
     return all_chunks
 
 
+class BM25Retriever:
+    def __init__(self, corpus):
+        self.corpus = corpus
+        self.tokenized_corpus = [doc['text'].lower().split() for doc in corpus]
+        self.bm25 = BM250kapi(self.tokenized_corpus)
 
+    def retrieve(self, query: str, top: int = 3):
+        tokenized_query = query.lower().split()
+        scores = self.bm25.get_scores(tokenized_query)
+        top_indices = np.argsort(scores)[::-1][:top]
+
+        return [self.corpus[i] for i in top_indices]
+
+class DenseRetriever:
+    def __init__(self, corpus, model_name: str = 'sentence-transformers/all-MiniLM-L6-v2'):
+        self.corpus = corpus
+        print(f" Initializing Dense Retriever using {model_name}...")
+        self.model = SentenceTransformer(model_name)
+        texts = [doc['text'] for doc in corpus]
+        self.embeddings = self.model.encode(texts, show_progress_bar = True, batch_size = 32)
+
+    def retrieve(self, query: str, top: int = 3):
+        query_vec = self.model.encode([query])
+        similiraties = cosine_similarity(query_vec, self.embeddings)[0]
+        top_indices = np.argsort(similiraties)[::-1][:top]
+
+        return [self.corpus[i] for i in top_indices]
+
+
+SYSTEM_PROMPT = """You are a precise technical AI assistant answering questions about Microsoft Qlib.
+Instructions: 
+1. Answer the question relying ONLY on the provided Context Chunks below.
+2. Include inline chunk citations for every key fact mentioned (e.g., [doc_14]).
+3. If the provided context is insufficient or irrelevant to answer the question, output EXACTLY: "I don't know."
+"""
 
