@@ -8,12 +8,12 @@ Student ID: 210852760, 190406260
 import os
 import re
 import numpy as np
-from rank_bm25 import BM250kapi
-from sentence_transformers import SentenceTransformer
+from rank_bm25 import BM25Okapi
 from sklearn.metrics.pairwise import cosine_similarity
 import requests
 import ollama
 import random
+import pandas as pd
 
 np.random.seed(42)
 random.seed(42)
@@ -47,9 +47,9 @@ def chunk_document(text: str, source_url: str, chunk_size: int = 150, overlap: i
 
     for i in range(0, len(words), chunk_size - overlap):
         chunk_words = words[i:i + chunk_size]
-        chunk_text = " ".join(chunk_size)
+        chunk_text = " " + str(chunk_size)
 
-        if len(chunk_text.strip()) > 30:
+        if chunk_size > 30:
             chunks.append({"text": chunk_text, 
                            "metadata": {
                                "source": source_url,
@@ -86,7 +86,7 @@ class BM25Retriever:
     def __init__(self, corpus):
         self.corpus = corpus
         self.tokenized_corpus = [doc['text'].lower().split() for doc in corpus]
-        self.bm25 = BM250kapi(self.tokenized_corpus)
+        self.bm25 = BM25Okapi(self.tokenized_corpus)
 
     def retrieve(self, query: str, top: int = 3):
         tokenized_query = query.lower().split()
@@ -94,22 +94,6 @@ class BM25Retriever:
         top_indices = np.argsort(scores)[::-1][:top]
 
         return [self.corpus[i] for i in top_indices]
-
-class DenseRetriever:
-    def __init__(self, corpus, model_name: str = 'sentence-transformers/all-MiniLM-L6-v2'):
-        self.corpus = corpus
-        print(f" Initializing Dense Retriever using {model_name}...")
-        self.model = SentenceTransformer(model_name)
-        texts = [doc['text'] for doc in corpus]
-        self.embeddings = self.model.encode(texts, show_progress_bar = True, batch_size = 32)
-
-    def retrieve(self, query: str, top: int = 3):
-        query_vec = self.model.encode([query])
-        similiraties = cosine_similarity(query_vec, self.embeddings)[0]
-        top_indices = np.argsort(similiraties)[::-1][:top]
-
-        return [self.corpus[i] for i in top_indices]
-
 
 SYSTEM_PROMPT = """You are a precise technical AI assistant answering questions about Microsoft Qlib.
 Instructions: 
@@ -251,23 +235,20 @@ def main():
         return
 
     bm25_retreiver = BM25Retriever(corpus)
-    dense_retriever = DenseRetriever(corpus)
 
     bm25_hr, bm25_mrr = calc_hit_rate_and_mrr(bm25_retreiver, EVALUATION_SET, top = 3)
-    dense_hr, dense_mrr = calc_hit_rate_and_mrr(dense_retriever, EVALUATION_SET, top = 3)
 
     print("\n")
     print("RETRIEVAL PERFORMANCE METRICS")
     print("")
     print(f"BM25 Retrieval   -> Hit Rate @ 3: {bm25_hr:.4f} | MRR @ 3: {bm25_mrr:.4f}")
-    print(f"Dense Retrieval  -> Hit Rate @ 3: {dense_hr:.4f} | MRR @ 3: {dense_mrr:.4f}")
     print("\n")
 
     results = []
-    print("Running Answer Generation Benchmark (Dense Retrieval + Llama 3.2)...\n")
+    print("Running Answer Generation Benchmark (BM25 Retrieval + Llama 3.2)...\n")
 
     for item in EVALUATION_SET:
-        retrieved_chunks = dense_retriever.retrieve(item["question"], top = 3)
+        retrieved_chunks = bm25_retreiver.retrieve(item["question"], top = 3)
         generated_ans = generate_answer(item["question"], retrieved_chunks)
         chunk_ids = [c["doc_id"] for c in retrieved_chunks]
 
