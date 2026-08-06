@@ -138,4 +138,76 @@ def generate_answer(query: str, retrieved_chunks: list, model_name: str = "llama
     except Exception as e:
         return f"[LLM Call Failed: Ensure Ollama is running Llama 3.2 locally. Error: {e}]"
 
-    
+EVALUATION_SET = [
+    {
+        "id": 1,
+        "question": "What is Microsoft Qlib designed for?",
+        "type": "factoid",
+        "ground_truth_keywords": ["quantitative", "investment", "AI", "platform"],
+        "expected_unanswerable": False
+    },
+    {
+        "id": 2,
+        "question": "How is high-frequency financial data stored and handled in Qlib?",
+        "type": "factoid",
+        "ground_truth_keywords": ["data", "format", "bin", "storage"],
+        "expected_unanswerable": False
+    },
+    {
+        "id": 3,
+        "question": "What python command initializes data in Qlib?",
+        "type": "factoid",
+        "ground_truth_keywords": ["qlib.init", "provider_uri"],
+        "expected_unanswerable": False
+    },
+    {
+        "id": 4,
+        "question": "Which machine learning frameworks does Qlib integrate for model training?",
+        "type": "factoid",
+        "ground_truth_keywords": ["PyTorch", "LightGBM", "scikit-learn"],
+        "expected_unanswerable": False
+    },
+    {
+        "id": 5,
+        "question": "What is the purpose of the Strategy module in Qlib?",
+        "type": "factoid",
+        "ground_truth_keywords": ["portfolio", "generator", "signal", "trading"],
+        "expected_unanswerable": False
+    },
+    {
+        "id": 6,
+        "question": "How does Qlib perform backtesting for quantitative portfolios?",
+        "type": "factoid",
+        "ground_truth_keywords": ["executor", "backtest", "position", "trade"],
+        "expected_unanswerable": False
+    },
+    {
+        "id": 7,
+        "question": "How do data preprocessing modules connect to model training and backtesting in Qlib?",
+        "type": "multi-hop",
+        "ground_truth_keywords": ["dataset", "handler", "model", "executor"],
+        "expected_unanswerable": False
+    },
+    {
+        "id": 8,
+        "question": "What are the structural steps involved when converting an offline model experiment to a live workflow execution in Qlib?",
+        "type": "multi-hop",
+        "ground_truth_keywords": ["workflow", "online", "manager", "record"],
+        "expected_unanswerable": False
+    },
+    {
+        "id": 9,
+        "question": "What is the real-time stock price of Apple (AAPL) on NASDAQ?",
+        "type": "unanswerable",
+        "ground_truth_keywords": [],
+        "expected_unanswerable": True
+    },
+    {
+        "id": 10,
+        "question": "What is the maximum allowed GPU core temperature for TabNet training in Qlib?",
+        "type": "unanswerable",
+        "ground_truth_keywords": [],
+        "expected_unanswerable": True
+    }
+]
+
