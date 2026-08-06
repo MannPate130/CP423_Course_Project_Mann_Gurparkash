@@ -211,3 +211,35 @@ EVALUATION_SET = [
     }
 ]
 
+def calc_hit_rate_and_mrr(retriever, eval_set, top = 3):
+    hits = 0
+    reciprocal_ranks = []
+
+    for item in eval_set:
+        if item["expected_unanswerable"]:
+            continue
+
+        retrieved = retriever.retrieve(item["question"], top = top)
+        retrieved_txt = " ".join([c["text"].lower() for c in retrieved])
+
+        match_count = sum(1 for kw in item["ground_truth_keywords"] if kw.lower() in retrieved_txt)
+        hit = match_count >= 1
+
+        if hit:
+            hits += 1
+
+            rank_found = False 
+            for rank_idx, chunk in enumerate(retrieved, start = 1):
+                if any(kw.lower() in chunk["text"].lower() for kw in item["ground_truth_keywords"]):
+                    reciprocal_ranks.append(1.0 / rank_idx)
+                    rank_found = True
+                    break
+            if not rank_found:
+                reciprocal_ranks.append(0.0)
+
+    answerable = len([x for x in eval_set if not x["expected_unanswerable"]])
+    hit_rate = hits / answerable if answerable > 0 else 0.0
+    mrr = np.mean(reciprocal_ranks) if reciprocal_ranks else 0.0
+
+    return hit_rate, mrr
+
