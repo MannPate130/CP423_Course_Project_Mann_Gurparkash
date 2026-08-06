@@ -118,3 +118,24 @@ Instructions:
 3. If the provided context is insufficient or irrelevant to answer the question, output EXACTLY: "I don't know."
 """
 
+def generate_answer(query: str, retrieved_chunks: list, model_name: str = "llama3.2") -> str:
+    context_str = "\n\n".join([f"--- Chunk ID: {c['doc_id']} ---\n{c['text']}" for c in retrieved_chunks])
+
+    user_msg = f"Context Chunks: \n{context_str}\n\nQuestion: {query}"
+
+    try:
+        response = ollama.chat(
+            model = model_name,
+            messages = [
+                {'role': 'system', 'content': SYSTEM_PROMPT},
+                {'role': 'user', 'content': user_msg}
+            ], 
+            options = {'temperature': 0.0}
+        )
+
+        return response['message']['content'].strip()
+
+    except Exception as e:
+        return f"[LLM Call Failed: Ensure Ollama is running Llama 3.2 locally. Error: {e}]"
+
+    
