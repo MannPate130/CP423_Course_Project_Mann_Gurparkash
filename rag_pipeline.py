@@ -243,3 +243,55 @@ def calc_hit_rate_and_mrr(retriever, eval_set, top = 3):
 
     return hit_rate, mrr
 
+def main():
+    corpus = build_corpus()
+
+    if len(corpus) == 0:
+        print("Error: No documents loaded. Please check internet connection.")
+        return
+
+    bm25_retreiver = BM25Retriever(corpus)
+    dense_retriever = DenseRetriever(corpus)
+
+    bm25_hr, bm25_mrr = calc_hit_rate_and_mrr(bm25_retreiver, EVALUATION_SET, top = 3)
+    dense_hr, dense_mrr = calc_hit_rate_and_mrr(dense_retriever, EVALUATION_SET, top = 3)
+
+    print("\n")
+    print("RETRIEVAL PERFORMANCE METRICS")
+    print("")
+    print(f"BM25 Retrieval   -> Hit Rate @ 3: {bm25_hr:.4f} | MRR @ 3: {bm25_mrr:.4f}")
+    print(f"Dense Retrieval  -> Hit Rate @ 3: {dense_hr:.4f} | MRR @ 3: {dense_mrr:.4f}")
+    print("\n")
+
+    results = []
+    print("Running Answer Generation Benchmark (Dense Retrieval + Llama 3.2)...\n")
+
+    for item in EVALUATION_SET:
+        retrieved_chunks = dense_retriever.retrieve(item["question"], top = 3)
+        generated_ans = generate_answer(item["question"], retrieved_chunks)
+        chunk_ids = [c["doc_id"] for c in retrieved_chunks]
+
+        results.append({
+            "QID": item["id"],
+            "Question": item["question"],
+            "Type": item["type"],
+            "Retrieved_Chunks": ", ".join(chunk_ids),
+            "Generated_Answer": generated_ans
+        })
+
+    df_results = pd.DataFrame(results)
+    df_results.to_csv("eval_results.csv", index = False)
+
+    print("\n")
+    print("FINAL SYSTEM REPRODUCTION TABLE")
+    print("")
+    for idx, row in df_results.iterrows():
+        print(f"QID: {row['QID']} | Type: {row['Type']}")
+        print(f"Q: {row['Question']}")
+        print(f"Chunks Cited/Retrieved: {row['Retrieved_Chunks']}")
+        print(f"LLM Answer: {row['Generated_Answer']}\n" + "-"*106)
+
+    print(f"\n Execution Complete. Evaluation table exported to 'eval_results.csv'.")
+
+if __name__ == "__main__":
+    main()
